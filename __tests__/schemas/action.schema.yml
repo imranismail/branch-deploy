@@ -320,7 +320,7 @@ inputs:
     default:
       type: string
       required: true
-  trigger_message_path:
+  trigger_message_template:
     description:
       type: string
       required: true

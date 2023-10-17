@@ -543,19 +543,12 @@ export async function run() {
 
     let commentBody = ''
 
-    const triggerMessagePath = await checkInput(
-      core.getInput('trigger_message_path')
+    const triggerMessageTemplate = await checkInput(
+      core.getInput('trigger_message_template')
     )
 
-    core.debug(`triggerMessagePath: ${triggerMessagePath}`)
-    core.debug(
-      `existsSync(triggerMessagePath): ${existsSync(triggerMessagePath)}`
-    )
-
-    // if the 'triggerMessagePath' exists, use that instead of the env var option
-    // the env var option can often fail if the message is too long so this is the preferred option
-    if (triggerMessagePath && existsSync(triggerMessagePath)) {
-      core.debug('using triggerMessagePath')
+    if (triggerMessageTemplate) {
+      core.debug('using triggerMessageTemplate')
       nunjucks.configure({autoescape: true})
       const vars = {
         environment,
@@ -566,7 +559,7 @@ export async function run() {
         actor: context.actor,
         environment_url: environmentObj.environmentUrl
       }
-      commentBody = nunjucks.render(triggerMessagePath, vars)
+      commentBody = nunjucks.renderString(triggerMessageTemplate, vars)
     } else {
       commentBody = dedent(`
         ### Deployment Triggered 🚀
