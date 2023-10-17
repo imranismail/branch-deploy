@@ -38135,11 +38135,40 @@ __nccwpck_require__.d(__webpack_exports__, {
 var core = __nccwpck_require__(2186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(5438);
+;// CONCATENATED MODULE: ./src/functions/check-input.js
+// Helper function to check an Action's input to ensure it is valid
+// :param input: The input to check
+// :returns: The input if it is valid, null otherwise
+async function checkInput(input) {
+  // if the input is an empty string (most common), return null
+  if (input === '' || input?.trim() === '') {
+    return null
+  }
+
+  // if the input is null, undefined, or empty, return null
+  if (input === null || input === undefined || input?.length === 0) {
+    return null
+  }
+
+  // if the input is a string of null or undefined, return null
+  if (input === 'null' || input === 'undefined') {
+    return null
+  }
+
+  // if we made it this far, the input is valid, return it
+  return input
+}
+
+// EXTERNAL MODULE: external "fs"
+var external_fs_ = __nccwpck_require__(7147);
 // EXTERNAL MODULE: ./node_modules/@octokit/plugin-retry/dist-node/index.js
 var dist_node = __nccwpck_require__(6298);
 // EXTERNAL MODULE: ./node_modules/dedent-js/lib/index.js
 var lib = __nccwpck_require__(3159);
 var lib_default = /*#__PURE__*/__nccwpck_require__.n(lib);
+// EXTERNAL MODULE: ./node_modules/nunjucks/index.js
+var nunjucks = __nccwpck_require__(7006);
+var nunjucks_default = /*#__PURE__*/__nccwpck_require__.n(nunjucks);
 ;// CONCATENATED MODULE: ./src/functions/colors.js
 const COLORS = {
   highlight: '\u001b[35m', // magenta
@@ -38365,30 +38394,6 @@ async function reactEmote(reaction, context, octokit) {
 
   // Return the reactRes which contains the id for reference later
   return reactRes
-}
-
-;// CONCATENATED MODULE: ./src/functions/check-input.js
-// Helper function to check an Action's input to ensure it is valid
-// :param input: The input to check
-// :returns: The input if it is valid, null otherwise
-async function checkInput(input) {
-  // if the input is an empty string (most common), return null
-  if (input === '' || input?.trim() === '') {
-    return null
-  }
-
-  // if the input is null, undefined, or empty, return null
-  if (input === null || input === undefined || input?.length === 0) {
-    return null
-  }
-
-  // if the input is a string of null or undefined, return null
-  if (input === 'null' || input === 'undefined') {
-    return null
-  }
-
-  // if we made it this far, the input is valid, return it
-  return input
 }
 
 ;// CONCATENATED MODULE: ./src/functions/action-status.js
@@ -40732,11 +40737,6 @@ async function unlock(
   }
 }
 
-// EXTERNAL MODULE: external "fs"
-var external_fs_ = __nccwpck_require__(7147);
-// EXTERNAL MODULE: ./node_modules/nunjucks/index.js
-var nunjucks = __nccwpck_require__(7006);
-var nunjucks_default = /*#__PURE__*/__nccwpck_require__.n(nunjucks);
 ;// CONCATENATED MODULE: ./src/functions/post-deploy-message.js
 
 
@@ -41520,6 +41520,9 @@ async function help(octokit, context, reactionId, inputs) {
 
 
 
+
+
+
 // :returns: 'success', 'success - noop', 'success - merge deploy mode', 'failure', 'safe-exit', 'success - unlock on merge mode' or raises an error
 async function run() {
   try {
@@ -42030,18 +42033,43 @@ async function run() {
       deploymentType =
         environmentObj.environmentObj.sha !== null ? 'sha' : 'Branch'
     }
+
     const log_url = `${process.env.GITHUB_SERVER_URL}/${github.context.repo.owner}/${github.context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`
-    const commentBody = lib_default()(`
-      ### Deployment Triggered 🚀
 
-      __${
-        github.context.actor
-      }__, started a __${deploymentType.toLowerCase()}__ deployment to __${environment}__
+    let commentBody = ''
 
-      You can watch the progress [here](${log_url}) 🔗
+    const triggerMessagePath = await checkInput(
+      core.getInput('trigger_message_path')
+    )
 
-      > __${deploymentType}__: \`${precheckResults.ref}\`
-    `)
+    // if the 'triggerMessagePath' exists, use that instead of the env var option
+    // the env var option can often fail if the message is too long so this is the preferred option
+    if (triggerMessagePath && (0,external_fs_.existsSync)(triggerMessagePath)) {
+      core.debug('using triggerMessagePath')
+      nunjucks_default().configure({autoescape: true})
+      const vars = {
+        environment,
+        log_url,
+        noop: precheckResults.noopMode,
+        ref: precheckResults.ref,
+        deployment_type: deploymentType,
+        actor: github.context.actor,
+        environment_url: environmentObj.environmentUrl
+      }
+      commentBody = nunjucks_default().render(triggerMessagePath, vars)
+    } else {
+      commentBody = lib_default()(`
+        ### Deployment Triggered 🚀
+
+        __${
+          github.context.actor
+        }__, started a __${deploymentType.toLowerCase()}__ deployment to __${environment}__
+
+        You can watch the progress [here](${log_url}) 🔗
+
+        > __${deploymentType}__: \`${precheckResults.ref}\`
+      `)
+    }
 
     // Make a comment on the PR
     await octokit.rest.issues.createComment({

@@ -1,8 +1,11 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import {checkInput} from './functions/check-input'
+import {existsSync} from 'fs'
 import {context} from '@actions/github'
 import {octokitRetry} from '@octokit/plugin-retry'
 import dedent from 'dedent-js'
+import nunjucks from 'nunjucks'
 
 import {triggerCheck} from './functions/trigger-check'
 import {contextCheck} from './functions/context-check'
@@ -535,18 +538,43 @@ export async function run() {
       deploymentType =
         environmentObj.environmentObj.sha !== null ? 'sha' : 'Branch'
     }
+
     const log_url = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`
-    const commentBody = dedent(`
-      ### Deployment Triggered 🚀
 
-      __${
-        context.actor
-      }__, started a __${deploymentType.toLowerCase()}__ deployment to __${environment}__
+    let commentBody = ''
 
-      You can watch the progress [here](${log_url}) 🔗
+    const triggerMessagePath = await checkInput(
+      core.getInput('trigger_message_path')
+    )
 
-      > __${deploymentType}__: \`${precheckResults.ref}\`
-    `)
+    // if the 'triggerMessagePath' exists, use that instead of the env var option
+    // the env var option can often fail if the message is too long so this is the preferred option
+    if (triggerMessagePath && existsSync(triggerMessagePath)) {
+      core.debug('using triggerMessagePath')
+      nunjucks.configure({autoescape: true})
+      const vars = {
+        environment,
+        log_url,
+        noop: precheckResults.noopMode,
+        ref: precheckResults.ref,
+        deployment_type: deploymentType,
+        actor: context.actor,
+        environment_url: environmentObj.environmentUrl
+      }
+      commentBody = nunjucks.render(triggerMessagePath, vars)
+    } else {
+      commentBody = dedent(`
+        ### Deployment Triggered 🚀
+
+        __${
+          context.actor
+        }__, started a __${deploymentType.toLowerCase()}__ deployment to __${environment}__
+
+        You can watch the progress [here](${log_url}) 🔗
+
+        > __${deploymentType}__: \`${precheckResults.ref}\`
+      `)
+    }
 
     // Make a comment on the PR
     await octokit.rest.issues.createComment({

@@ -121,6 +121,10 @@ inputs:
     description: 'If set to "true", skip the process of completing a deployment. You must manually create a deployment status after the deployment is complete. Default is "false"'
     required: false
     default: "false"
+  trigger_message_path:
+    description: 'The path to a markdown file which is used as a template for custom trigger messages. Example: ".github/trigger_message.md"'
+    required: false
+    default: ".github/trigger_message.md"
   deploy_message_path:
     description: 'The path to a markdown file which is used as a template for custom deployment messages. Example: ".github/deployment_message.md"'
     required: false
@@ -178,7 +182,7 @@ outputs:
     description: 'The console command presented in the GitHub UI to checkout a given fork locally'
   fork_full_name:
     description: 'The full name of the fork in "org/repo" format'
-  deployment_id: 
+  deployment_id:
     description: The ID of the deployment created by running this action
   environment_url:
     description: The environment URL detected and used for the deployment (sourced from the environment_urls input)
