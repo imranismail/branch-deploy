@@ -547,6 +547,7 @@ export async function run() {
       core.getInput('trigger_message_path')
     )
 
+    core.debug(`triggerMessagePath: ${triggerMessagePath}`)
     // if the 'triggerMessagePath' exists, use that instead of the env var option
     // the env var option can often fail if the message is too long so this is the preferred option
     if (triggerMessagePath && existsSync(triggerMessagePath)) {
