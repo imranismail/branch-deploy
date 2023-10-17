@@ -125,6 +125,10 @@ inputs:
     description: 'The markdown file template which is used as a template for custom trigger messages.'
     required: false
     default: ""
+  deploy_message_template:
+    description: 'The markdown file template which is used as a template for custom deployment messages.'
+    required: false
+    default: ""
   deploy_message_path:
     description: 'The path to a markdown file which is used as a template for custom deployment messages. Example: ".github/deployment_message.md"'
     required: false

@@ -330,6 +330,16 @@ inputs:
     default:
       type: string
       required: false
+  deploy_message_template:
+    description:
+      type: string
+      required: true
+    required:
+      type: boolean
+      required: true
+    default:
+      type: string
+      required: false
   deploy_message_path:
     description:
       type: string

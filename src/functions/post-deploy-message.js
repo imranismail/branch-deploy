@@ -24,6 +24,24 @@ export async function postDeployMessage(
   const environment_url_in_comment = core.getBooleanInput(
     'environment_url_in_comment'
   )
+  const deployMessageTemplate = await checkInput(
+    core.getInput('deploy_message_template')
+  )
+
+  if (deployMessageTemplate) {
+    core.debug('using deployMessageTemplate')
+    nunjucks.configure({autoescape: true})
+    const vars = {
+      environment,
+      environment_url,
+      status,
+      noop,
+      ref,
+      actor: context.actor
+    }
+    return nunjucks.renderString(deployMessageTemplate, vars)
+  }
+
   const deployMessagePath = await checkInput(
     core.getInput('deploy_message_path')
   )
